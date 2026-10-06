@@ -1,0 +1,7 @@
+# Versions verified together in Phase 1 (Python 3.12, Linux).
+# Windows/Python 3.11 webcam verification remains a manual acceptance step.
+streamlit==1.44.1
+mediapipe==0.10.21
+opencv-contrib-python==4.11.0.86
+numpy==1.26.4
+pandas==2.3.3

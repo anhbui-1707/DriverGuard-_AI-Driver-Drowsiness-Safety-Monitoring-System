@@ -6,3 +6,4 @@ data/*.db*
 assets/screenshots/*.jpg
 assets/screenshots/*.png
 models/*.download
+models/*.task
