@@ -7,11 +7,10 @@ FPS, điểm nguy cơ hoặc độ trễ viết sẵn trong template.
 
 ## Cách chạy (Windows)
 
-1. Dừng app cũ: Dừng & lưu phiên, sau đó Ctrl+C trong Terminal.
-2. Giải nén ZIP **vào thư mục mới** để các file UI/config cùng phiên bản.
-3. Nhấp đúp **START_DRIVERGUARD.bat ngay ngoài cùng thư mục vừa giải nén**.
-4. Chờ cài thư viện lần đầu. Mở `http://127.0.0.1:8501` nếu Chrome không tự mở.
-5. Trong màn hình giám sát, chọn Webcam thật hoặc Demo rồi Bắt đầu phiên.
+1. Giải nén ZIP **vào thư mục mới** để các file UI/config cùng phiên bản.
+2. Nhấp đúp **START_DRIVERGUARD.bat ngay ngoài cùng thư mục vừa giải nén**.
+3. Chờ cài thư viện lần đầu. Mở `http://127.0.0.1:8501` nếu Chrome không tự mở.
+4. Trong màn hình giám sát, chọn Webcam thật hoặc Demo rồi Bắt đầu phiên.
 
 Cần Python **3.11 hoặc 3.12 bản 64-bit**, không dùng 3.14 với bộ phiên bản này.
 Model và âm báo đi kèm, chỉ lần đầu cài thư viện cần mạng. Không cần API key để giám sát.
