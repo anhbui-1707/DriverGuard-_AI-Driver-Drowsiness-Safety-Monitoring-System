@@ -1,0 +1,8 @@
+.venv/
+__pycache__/
+.pytest_cache/
+.env
+data/*.db*
+assets/screenshots/*.jpg
+assets/screenshots/*.png
+models/*.download
