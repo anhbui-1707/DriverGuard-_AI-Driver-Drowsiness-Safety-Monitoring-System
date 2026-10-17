@@ -8,6 +8,7 @@ import json
 import logging
 import secrets
 import threading
+import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlsplit
@@ -22,22 +23,18 @@ def state_payload(runtime):
     return dict(active=runtime.is_active(), status=result.status.value, message=result.message,
                 source=result.source, session_id=result.session_id, session_seconds=result.session_seconds,
                 face_detected=result.face_detected, eye_state=result.eyes.state.value,
-                ear=result.eyes.ear, eye_closure=result.eyes.closure_seconds, mar=result.mar,
-                mouth_open=result.mouth_open, yawn_count=result.yawn_count, recent_yawns=result.recent_yawns,
+                ear=result.eyes.ear, open_score=result.eyes.open_score, eye_model_message=result.eyes.model_message, eye_closure=result.eyes.closure_seconds, mar=result.mar, yawn_score=result.yawn_score,
+                mouth_open=result.mouth_open, yawn_count=result.yawn_count, drowsiness_count=result.drowsiness_count, distraction_count=result.distraction_count, recent_yawns=result.recent_yawns,
                 rest_recommended=result.rest_recommended, head_direction=result.head_direction,
                 distraction_seconds=result.distraction_seconds, risk_score=result.risk_score,
                 risk_level=result.risk_level.value, system_state=result.system_state,
                 confirmation_remaining=result.confirmation_remaining, events=list(result.events),
                 avg_risk=result.avg_risk, max_risk=result.max_risk, emergency_count=result.emergency_count,
-                fps=result.fps, camera_ms=result.camera_ms, vision_ms=result.vision_ms,
-                frame_time=result.frame_time, has_frame=result.frame_jpeg is not None,
+                fps=result.fps, preview_fps=result.preview_fps, camera_ms=result.camera_ms, vision_ms=result.vision_ms,
+                frame_time=result.frame_time, encode_ms=result.encode_ms, has_frame=result.frame_jpeg is not None,
                 storage_message=result.storage_message, audio_message=result.audio_message,
                 audio_enabled=runtime.audio_enabled,
-                calibrating=result.eyes.calibrating,
-                calibration_progress=result.eyes.calibration_progress,
-                baseline_ear=result.eyes.baseline_ear,
-                thresholds=dict(ear=runtime.settings.ear_closed_threshold,
-                                calibrated_ear=result.eyes.closed_threshold,
+                thresholds=dict(eye_model=runtime.settings.eye_model_threshold, ear=runtime.settings.ear_closed_threshold,
                                 closure=runtime.settings.eye_closure_threshold_seconds,
                                 timeout=runtime.settings.confirmation_timeout_seconds,
                                 yawn_count=runtime.settings.frequent_yawn_count,
@@ -55,13 +52,15 @@ class LiveBridge:
             def log_message(self, *args):
                 pass  # Do not log the per-session URL token or every frame.
 
-            def send_bytes(self, data, content_type, status=200):
+            def send_bytes(self, data, content_type, status=200, headers=None):
                 self.send_response(status)
                 self.send_header("Content-Type", content_type)
                 self.send_header("Content-Length", str(len(data)))
                 self.send_header("Cache-Control", "no-store")
                 self.send_header("X-Content-Type-Options", "nosniff")
                 self.send_header("Referrer-Policy", "no-referrer")
+                for name, value in (headers or {}).items():
+                    self.send_header(name, str(value))
                 self.end_headers()
                 self.wfile.write(data)
 
@@ -76,15 +75,28 @@ class LiveBridge:
             def do_GET(self):
                 route = self.route()
                 try:
-                    if route in ("panel", "live.css", "live.js"):
+                    if route in ("panel", "live.css", "live.js", "design.css", "voice.js"):
                         files = {"panel": ("live.html", "text/html; charset=utf-8"),
                                  "live.css": ("live.css", "text/css; charset=utf-8"),
-                                 "live.js": ("live.js", "text/javascript; charset=utf-8")}
+                                 "live.js": ("live.js", "text/javascript; charset=utf-8"),
+                                 "design.css": ("design.css", "text/css; charset=utf-8"),
+                                 "voice.js": ("voice.js", "text/javascript; charset=utf-8")}
                         name, content_type = files[route]
                         self.send_bytes((ASSETS/name).read_bytes(), content_type)
                     elif route == "state":
                         bridge.runtime.heartbeat()
                         self.send_bytes(json.dumps(state_payload(bridge.runtime), ensure_ascii=False, allow_nan=False).encode(), "application/json")
+                    elif route == "frame":
+                        result = bridge.runtime.latest()
+                        try:
+                            since = float(self.headers.get("X-Last-Frame-Time", "-1"))
+                        except ValueError:
+                            since = -1
+                        if result.frame_jpeg is None or result.frame_time == since:
+                            self.send_bytes(b"", "image/jpeg", 204)
+                        else:
+                            age_ms = max(0, time.monotonic()-(result.frame_time or time.monotonic()))*1000
+                            self.send_bytes(result.frame_jpeg, "image/jpeg", headers={"X-Frame-Age-Ms": round(age_ms,2), "X-Frame-Time": result.frame_time})
                     elif route == "video":
                         self.stream_video()
                     else:

@@ -2,7 +2,7 @@
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any
-from vision.eye_detector import EyeResult
+from vision.eye_tracker import EyeResult
 class RiskLevel(str, Enum):
     SAFE = "SAFE"
     WARNING = "WARNING"
@@ -28,6 +28,9 @@ class MonitorResult:
     landmark_count: int = 0
     frame_time: float | None = None
     fps: float = 0.0
+    preview_fps: float = 0.0
+    preview_published_at: float | None = None
+    encode_ms: float = 0.0
     camera_ms: float = 0.0
     vision_ms: float = 0.0
     eyes: EyeResult = field(default_factory=EyeResult)
@@ -40,6 +43,7 @@ class MonitorResult:
     system_state: str = "NORMAL"
     confirmation_remaining: float = 0.0
     mar: float | None = None
+    yawn_score: float | None = None
     recent_yawns: int = 0
     rest_recommended: bool = False
     yaw_degrees: float | None = None

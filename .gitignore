@@ -3,7 +3,7 @@ __pycache__/
 .pytest_cache/
 .env
 data/*.db*
+data/users/
 assets/screenshots/*.jpg
 assets/screenshots/*.png
 models/*.download
-models/*.task

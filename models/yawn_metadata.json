@@ -1,0 +1,37 @@
+{
+  "model_file": "yawn_model_v2.keras",
+  "input_shape": [
+    96,
+    96,
+    3
+  ],
+  "input_color": "RGB",
+  "input_range": [
+    0,
+    255
+  ],
+  "normalization": "Rescaling(1/127.5, offset=-1) inside model; pass raw RGB 0–255",
+  "labels": {
+    "0": "no_yawn",
+    "1": "yawn"
+  },
+  "decision_threshold": 0.5,
+  "architecture": "MobileNetV2 ImageNet transfer learning",
+  "selected_stage": "fine_tune",
+  "seed": 42,
+  "tensorflow_version": "2.21.0",
+  "mediapipe_version": "1.1.0",
+  "crop_file": "mouth_crop.py",
+  "face_landmarker_file": "face_landmarker.task",
+  "crop_sha256": "28dbeb59940eb89bf76c1f5905bdf3d8cc5bdf8c08884ed57c9a5de07e6f0797",
+  "test_accuracy": 0.9763033390045166,
+  "test_loss": 0.08980965614318848,
+  "train_count": 974,
+  "validation_count": 244,
+  "test_count": 211,
+  "limitations": [
+    "Image-level split, not confirmed subject-independent",
+    "Exact pixel duplicates removed, near-duplicates may remain",
+    "Static mouth images do not establish drowsiness or reliably separate speech"
+  ]
+}

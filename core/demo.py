@@ -1,6 +1,7 @@
 """Synthetic measurements only: no fake camera face, no bypass of safety logic."""
 import cv2
 import numpy as np
+from core.demo_measurements import DemoEyeInput, update_demo_yawn
 
 
 class DemoInput:
@@ -33,5 +34,5 @@ class DemoInput:
         ear = s.ear_closed_threshold*.5 if now < self.eye_until else s.ear_open_threshold+.05
         mar = s.mar_open_threshold+.15 if now < self.yawn_until else s.mar_closed_threshold*.5
         yaw = s.head_yaw_threshold+10 if now < self.head_until else 0
-        return (pipeline.eyes.update_ear(ear, ear, now), pipeline.yawns.update_mar(mar, now),
+        return (DemoEyeInput(pipeline.eyes).update_ear(ear, ear, now), update_demo_yawn(pipeline.yawns, mar, now),
                 pipeline.head.update_angles(yaw, 0, now))
