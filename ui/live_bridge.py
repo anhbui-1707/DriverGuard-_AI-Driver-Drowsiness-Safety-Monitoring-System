@@ -1,6 +1,6 @@
 """Small loopback-only HTTP bridge. Video never uses Streamlit media URLs.
 
-The existing runtime remains the sole owner of camera, safety timers and SQLite.
+The existing runtime remains the sole owner of camera, safety timers and in-memory counters.
 This server only exposes the latest image, JSON indicators and a command queue.
 """
 import atexit

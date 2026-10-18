@@ -1,4 +1,4 @@
-"""A background worker owns camera, timers, alerts and SQLite; never calls Streamlit."""
+"""A background worker owns camera, timers and alerts; no session data is persisted."""
 import atexit
 import logging
 import queue
@@ -12,7 +12,6 @@ from core.controller import SafetyController
 from core.demo import DemoInput
 from core.pipeline import VisionPipeline
 from core.types import CameraStatus, MonitorResult
-from database.database import Repository
 from emergency.alert_manager import AlertManager
 from vision.camera import Camera, CameraError
 from vision.live_capture import LiveCapture
@@ -126,7 +125,7 @@ class MonitorRuntime:
                 demo.trigger(command, when)
 
     def _run(self, source):
-        camera = detector = repository = controller = audio = capture_stream = pipeline = None
+        camera = detector = controller = audio = capture_stream = pipeline = None
         owns_camera = False
         finish_status = "COMPLETED"
         status = CameraStatus.STOPPED
@@ -135,9 +134,7 @@ class MonitorRuntime:
             owns_camera = _camera_owner.acquire(blocking=False)
             if not owns_camera:
                 raise CameraError("DriverGuard đang chạy ở tab khác. Hãy Stop ở tab đó trước.")
-            repository = Repository(self.settings.database_path)
-            repository.recover_interrupted()
-            controller = SafetyController(self.settings, repository, source, time.monotonic())
+            controller = SafetyController(self.settings, source, time.monotonic())
             if source == "CAMERA":
                 camera = self.camera_factory(self.settings)
                 camera.open()
@@ -162,7 +159,7 @@ class MonitorRuntime:
                 with self._lock:
                     heartbeat_age = tick-self._heartbeat
                 if heartbeat_age > self.settings.heartbeat_timeout_seconds:
-                    message = "Đã tự dừng và lưu phiên vì giao diện mất kết nối."
+                    message = "Đã tự dừng vì giao diện mất kết nối."
                     finish_status = "INTERRUPTED"
                     break
                 self._consume_commands(controller, pipeline, demo, source, detector)
@@ -280,7 +277,7 @@ class MonitorRuntime:
                         landmark_count=count, fps=fps, message=current_message,
                         audio_message=audio_message, camera_ms=camera_ms, vision_ms=vision_ms)
                 if failures >= self.settings.max_read_failures:
-                    raise CameraError("Webcam đọc hình thất bại liên tiếp; đã dừng và lưu phiên.")
+                    raise CameraError("Webcam đọc hình thất bại liên tiếp; đã dừng.")
                 self._stop.wait(max(0, 1/self.settings.target_fps-(time.monotonic()-tick)))
         except Exception as exc:
             logger.exception("Monitoring failed")
@@ -292,9 +289,9 @@ class MonitorRuntime:
                 try:
                     controller.finish(time.monotonic(), finish_status)
                 except Exception as exc:
-                    logger.exception("Session saving failed")
+                    logger.exception("Runtime cleanup failed")
                     status = CameraStatus.ERROR
-                    message += f" Không lưu được phiên: {exc}"
+                    message += f" Lỗi kết thúc phiên: {exc}"
             if capture_stream is not None:
                 capture_stream.close()
                 if capture_stream._thread.is_alive() and owns_camera:
@@ -304,7 +301,7 @@ class MonitorRuntime:
                         _camera_owner.release()
                     threading.Thread(target=release_when_closed, daemon=True).start()
                     owns_camera = False
-            for resource in (pipeline, audio, camera if capture_stream is None else None, detector, repository):
+            for resource in (pipeline, audio, camera if capture_stream is None else None, detector):
                 if resource is not None:
                     try:
                         resource.close()

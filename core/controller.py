@@ -8,10 +8,9 @@ from session.session_manager import SessionStats
 
 
 class SafetyController:
-    def __init__(self, settings, repository, source, now):
+    def __init__(self, settings, source, now):
         self.settings = settings
-        self.repository = repository
-        self.session_id = repository.start_session(source)
+        self.session_id = None
         self.source = source
         self.risk = RiskEngine(settings)
         self.emergency = EmergencyManager(settings)
@@ -23,7 +22,7 @@ class SafetyController:
         self.storage_message = ""
 
     def record(self, typ, score, description, snapshot=""):
-        self.events.append(self.repository.save_event(self.session_id, typ, score, description, snapshot))
+        self.events.append({"type": typ, "score": round(float(score), 2), "description": description})
 
     def confirm(self, when):
         manager = self.emergency
@@ -79,10 +78,8 @@ class SafetyController:
         self.previous_level = level
         self.stats.update(now, score, yawn.yawn_count)
         if now-self.last_sample >= self.settings.sample_interval_seconds:
-            self.repository.sample(self.session_id, self.stats.duration, score)
             self.last_sample = now
         if now-self.last_checkpoint >= self.settings.checkpoint_interval_seconds:
-            self.repository.checkpoint(self.session_id, self.stats.as_dict())
             self.last_checkpoint = now
         metrics = self.stats.as_dict()
         # NORMAL is the emergency-manager state; UI also shows risk-based warning/drowsy.
@@ -103,4 +100,3 @@ class SafetyController:
 
     def finish(self, now, status):
         self.stats.update(now, self.stats.previous_score, self.stats.yawn_count)
-        self.repository.checkpoint(self.session_id, self.stats.as_dict(), status)
